@@ -18,7 +18,7 @@ class CreateClientsTable extends Migration
             $table->primary('id');
 
             $table->string('name')->length(50);
-            $table->string('phone_number')->length(15);
+            $table->string('phone_number')->length(15)->unique();
             $table->text('address');
             $table->timestamps();
             $table->softDeletes('deleted_at', 0);
