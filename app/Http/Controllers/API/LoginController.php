@@ -28,26 +28,44 @@ class LoginController extends Controller
             
         if (Hash::check($password, $user->password)) {
             // auth valid, update api token
-            $newToken = Str::random(80);
+            $new_token = Str::random(80);
             User::where("username", $username)->update([
-                "api_token" => $newToken
+                "api_token" => $new_token
             ]);
 
-            $user->api_token = $newToken;
+            $user->api_token = $new_token;
 
             return response([
                 "message" => "Success",
-                "code" => 200,
                 "data" => [
                     "user" => $user
                 ]
-            ],401);
+            ]);
         } else {
             // auth invalid
             return response([
-                "message" => "Failed, wrong username or password",
-                "code" => 401
+                "message" => "Failed, wrong username or password"
             ],401);
         }
+    }
+
+    public function change_password(Request $req)
+    {
+        $req->validate([
+            "new_password" => "required|min:8"
+        ]);
+
+        $update_password = User::where('id', $req->user()->id)
+                            ->update([
+                                "password" => bcrypt($req->new_password)
+                            ]);
+        
+        if ($update_password) return response([
+            "message" => "Success, password updated"
+        ],200);
+
+        return response([
+            "message" => "Failed, something went wrong"
+        ],500);
     }
 }

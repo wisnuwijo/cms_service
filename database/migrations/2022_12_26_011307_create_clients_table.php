@@ -19,7 +19,7 @@ class CreateClientsTable extends Migration
 
             $table->string('name')->length(50);
             $table->string('phone_number')->length(15)->unique();
-            $table->text('address');
+            $table->text('address')->nullable();
             $table->timestamps();
             $table->softDeletes('deleted_at', 0);
         });
