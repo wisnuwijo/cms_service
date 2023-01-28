@@ -18,6 +18,11 @@ class RoleSeeder extends Seeder
                 "id" => Str::uuid(),
                 "name" => "administrator",
                 "created_at" => now()
+            ],
+            [
+                "id" => Str::uuid(),
+                "name" => "employee",
+                "created_at" => now()
             ]
         ]);
     }

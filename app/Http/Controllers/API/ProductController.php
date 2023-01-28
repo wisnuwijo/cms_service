@@ -17,7 +17,7 @@ class ProductController extends Controller
         $uuid = Str::uuid();
         Log::info(now() .' '. $uuid . ' Got product list request');
 
-        $get_products = Product::select(["fb_data","status","sku"])->get();
+        $get_products = Product::select(["fb_data","status","sku"])->orderBy('created_at','DESC')->get();
         $products = [];
         for ($i=0; $i < count($get_products); $i++) { 
             $product = json_decode($get_products[$i]->fb_data);
@@ -45,7 +45,7 @@ class ProductController extends Controller
         $product_detail = Product::where('sku', $req->retailer_id)->first();
         $detail = json_decode($product_detail->fb_data);
         $detail->status = $product_detail->status;
-        $stock_history = StockHistory::where('product_id', $product_detail->id)->get();
+        $stock_history = StockHistory::where('product_id', $product_detail->id)->orderBy('created_at','DESC')->get();
         
         Log::info(now() .' '. $uuid . ' Success return product detail');
         return response([
@@ -64,14 +64,14 @@ class ProductController extends Controller
             "requests.*.retailer_id" => "required|exists:products,sku",
             "requests.*.data" => "required",
             "requests.*.data.availability" => "nullable",
-            "requests.*.data.stock" => "nullable|int",
+            "requests.*.data.stock" => "nullable|int|min:1",
             "requests.*.data.brand" => "nullable",
             "requests.*.data.category" => "nullable",
             "requests.*.data.description" => "nullable",
             "requests.*.data.image_url" => "nullable",
             "requests.*.data.additional_image_link" => "nullable|array",
             "requests.*.data.name" => "nullable",
-            "requests.*.data.price" => "nullable:integer",
+            "requests.*.data.price" => "nullable|numeric|min:1",
             "requests.*.data.currency" => "nullable",
             "requests.*.data.shipping" => "nullable",
             "requests.*.data.shipping.*.country" => "nullable",
@@ -120,6 +120,35 @@ class ProductController extends Controller
             if (isset($item['data']['stock'])) {
                 Log::info(now() .' '. $uuid . ' Got stock update request on product : ' . $item["retailer_id"]);
                 $update_arr[$i]['stock'] = $item['data']['stock'];
+
+                // insert stock history
+                $current_stock = $current_product->stock;
+                if ($current_stock != $item['data']['stock']) {
+                    Log::info(now() .' '. $uuid . ' Got request with stock different from current stock');
+                    Log::info(now() .' '. $uuid . ' Insert stock update to stock history');
+
+                    $stock_change_type = "in";
+                    $stock_change_amount = $item['data']['stock'] - $current_stock;
+                    if ($current_stock > $item['data']['stock']) {
+                        $stock_change_type = "out";
+                        $stock_change_amount = $current_stock - $item['data']['stock'];
+                    }
+    
+                    $stock_history = [
+                        "id" => (string) $uuid,
+                        "product_id" => $current_product->id,
+                        "transaction_id" => (string) $uuid,
+                        "stock_change_amount" => $stock_change_amount,
+                        "stock_before" => $current_stock,
+                        "stock_after" => $item['data']['stock'],
+                        "note" => "STOCK UPDATE FROM CMS",
+                        "type" => $stock_change_type,
+                        "created_at" => now()
+                    ];
+    
+                    Log::info(now() .' '. $uuid . ' Insert stock history : ' . json_encode($stock_history));
+                    $insert_stock_history = StockHistory::insert($stock_history);
+                }
             }
 
             if (isset($item['data']['description'])) {
