@@ -17,7 +17,7 @@ class CreateTransactionsTable extends Migration
             $table->uuid('id');
             $table->primary('id');
             $table->uuid('client_id');
-            $table->enum('status',["unpaid","prepare_for_delivery","expired","canceled","delivery","delivered"]);
+            $table->enum('status',["unpaid","prepare_for_delivery","expired","canceled","delivery","delivered","success"]);
             $table->double('delivery_fee');
             $table->double('tax_percentage');
             $table->double('total_before_tax');
