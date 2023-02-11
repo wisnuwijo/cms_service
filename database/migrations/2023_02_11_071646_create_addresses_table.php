@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateClientsTable extends Migration
+class CreateAddressesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,13 @@ class CreateClientsTable extends Migration
      */
     public function up()
     {
-        Schema::create('clients', function (Blueprint $table) {
+        Schema::create('addresses', function (Blueprint $table) {
             $table->uuid('id');
             $table->primary('id');
-            $table->string('name')->length(50);
-            $table->string('phone_number')->length(15)->unique();
+            $table->string('client_id')->length(50);
+            $table->text('address');
+            $table->string('address_name');
+            $table->json('rajaongkir_ref');
             $table->timestamps();
             $table->softDeletes('deleted_at', 0);
         });
@@ -30,6 +32,6 @@ class CreateClientsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('clients');
+        Schema::dropIfExists('addresses');
     }
 }
