@@ -19,7 +19,9 @@ class CreateTransactionDetailsTable extends Migration
             $table->uuid('transaction_id');
             $table->uuid('product_id');
             $table->string('product_name')->length(128);
+            $table->integer('qty');
             $table->double('product_price');
+            $table->double('total_price');
             $table->timestamps();
             $table->softDeletes('deleted_at', 0);
         });

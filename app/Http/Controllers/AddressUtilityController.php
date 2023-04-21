@@ -214,16 +214,24 @@ class AddressUtilityController extends Controller
         $productSkuList = [];
         $totalProductWeight = null;
         if (isset($pendingTrx)) {
-            $productSkuList = explode(",", $pendingTrx->product_list);
-            Log::info($logPrefix . "Total product on pending transaction : " . count($productSkuList));
+            $productSkuList = [];
+            $parseProductList = json_decode($pendingTrx->product_list);
+            $totalWeight = 0;
+            for ($i=0; $i < count($parseProductList->ordered_product); $i++) {
+                $productSkuList[] = $parseProductList->ordered_product[$i]->sku;
+                $getProduct = Product::where("sku", $parseProductList->ordered_product[$i]->sku)->first();
+                if (isset($getProduct)) {
+                    $totalWeight += $getProduct->weight * $parseProductList->ordered_product[$i]->qty;
+                }
+            }
 
-            $totalProductWeight = Product::selectRaw("SUM(weight) as total_weight")->whereIn("sku", $productSkuList)->first();
+            Log::info($logPrefix . "Total product on pending transaction : " . count($productSkuList));
             Log::info($logPrefix . "Total product on pending transaction price : " . $totalProductWeight);
         }
 
         // get courier price
         $couriers = [];
-        $jnePrice = $this->getDeliveryFee($uuid, "jne", 399, $req->city, $totalProductWeight->total_weight);
+        $jnePrice = $this->getDeliveryFee($uuid, "jne", 399, $req->city, $totalWeight);
         Log::info($logPrefix . "Response get price JNE : " . json_encode($jnePrice));
         for ($i=0; $i < count($jnePrice[0]->costs); $i++) {
             $couriers[] = [
@@ -232,7 +240,7 @@ class AddressUtilityController extends Controller
             ];
         }
 
-        $posPrice = $this->getDeliveryFee($uuid, "pos", 399, $req->city, $totalProductWeight->total_weight);
+        $posPrice = $this->getDeliveryFee($uuid, "pos", 399, $req->city, $totalWeight);
         Log::info($logPrefix . "Response get price POS : " . json_encode($posPrice));
         for ($i=0; $i < count($posPrice[0]->costs); $i++) {
             $couriers[] = [
@@ -243,7 +251,7 @@ class AddressUtilityController extends Controller
             ];
         }
 
-        $tikiPrice = $this->getDeliveryFee($uuid, "tiki", 399, $req->city, $totalProductWeight->total_weight);
+        $tikiPrice = $this->getDeliveryFee($uuid, "tiki", 399, $req->city, $totalWeight);
         Log::info($logPrefix . "Response get price TIKI : " . json_encode($tikiPrice));
         for ($i=0; $i < count($tikiPrice[0]->costs); $i++) {
             $couriers[] = [
