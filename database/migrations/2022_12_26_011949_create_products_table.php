@@ -16,10 +16,12 @@ class CreateProductsTable extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->uuid('id');
             $table->primary('id');
+            $table->integer('origin_city')->default(399);
             $table->string('sku')->unique()->length(128);
             $table->enum('status',['in_review', 'ready_to_use', 'rejected']);
             $table->string('name')->length(128);
             $table->double('price');
+            $table->double('weight')->comment('Product weight in gram');
             $table->integer('stock');
             $table->json('fb_data');
             $table->text('description');

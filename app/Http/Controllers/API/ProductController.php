@@ -19,7 +19,7 @@ class ProductController extends Controller
 
         $get_products = Product::select(["fb_data","status","sku"])->orderBy('created_at','DESC')->get();
         $products = [];
-        for ($i=0; $i < count($get_products); $i++) { 
+        for ($i=0; $i < count($get_products); $i++) {
             $product = json_decode($get_products[$i]->fb_data);
             $product->status = $get_products[$i]->status;
             $product->retailer_id = $get_products[$i]->sku;
@@ -41,12 +41,12 @@ class ProductController extends Controller
 
         $uuid = Str::uuid();
         Log::info(now() .' '. $uuid . ' Got product detail request : ' . json_encode($req->all()));
-        
+
         $product_detail = Product::where('sku', $req->retailer_id)->first();
         $detail = json_decode($product_detail->fb_data);
         $detail->status = $product_detail->status;
         $stock_history = StockHistory::where('product_id', $product_detail->id)->orderBy('created_at','DESC')->get();
-        
+
         Log::info(now() .' '. $uuid . ' Success return product detail');
         return response([
             "message" => "Success",
@@ -72,6 +72,7 @@ class ProductController extends Controller
             "requests.*.data.additional_image_link" => "nullable|array",
             "requests.*.data.name" => "nullable",
             "requests.*.data.price" => "nullable|numeric|min:1",
+            "requests.*.data.weight" => "required:integer|min:1",
             "requests.*.data.currency" => "nullable",
             "requests.*.data.shipping" => "nullable",
             "requests.*.data.shipping.*.country" => "nullable",
@@ -90,22 +91,24 @@ class ProductController extends Controller
         $client = new \GuzzleHttp\Client();
         $fb_endpoint = env('FB_ENDPOINT');
         $fb_token = env('FB_MARKETING_API_TOKEN');
-        
+
         $payload = [
             "form_params" => [
                 "access_token" => $fb_token,
                 "requests" => []
             ]
         ];
-        
+
         // generate request body before send request to FB & query
-        for ($i=0; $i < count($req->requests); $i++) { 
+        for ($i=0; $i < count($req->requests); $i++) {
             $item = $req->requests[$i];
             $current_product = Product::where("sku", $item['retailer_id'])->first();
 
             // two following variable will be use later down in query after successful send request to FB
             $update_arr[$i]['updated_at'] = now();
             $where_arr[$i][] = ["sku", $item['retailer_id']];
+
+            $update_arr[$i]['weight'] = $item["weight"];
 
             if (isset($item['data']['name'])) {
                 Log::info(now() .' '. $uuid . ' Got name update request on product : ' . $item["retailer_id"]);
@@ -133,7 +136,7 @@ class ProductController extends Controller
                         $stock_change_type = "out";
                         $stock_change_amount = $current_stock - $item['data']['stock'];
                     }
-    
+
                     $stock_history = [
                         "id" => (string) $uuid,
                         "product_id" => $current_product->id,
@@ -145,7 +148,7 @@ class ProductController extends Controller
                         "type" => $stock_change_type,
                         "created_at" => now()
                     ];
-    
+
                     Log::info(now() .' '. $uuid . ' Insert stock history : ' . json_encode($stock_history));
                     $insert_stock_history = StockHistory::insert($stock_history);
                 }
@@ -179,11 +182,11 @@ class ProductController extends Controller
         $response_body_json = json_decode($response_body);
         $response_status_code = $create_item->getStatusCode();
         Log::info(now() .' '. $uuid . ' Response : ', ["RESPONSE BODY" => $response_body, "STATUS CODE" => $response_status_code]);
-        
+
         if (isset($response_body_json->validation_status[0]->errors) && count($response_body_json->validation_status[0]->errors) > 0) {
             // request failed
             $errors = [];
-            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) { 
+            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) {
                 $errors["message"][] = $response_body_json->validation_status[0]->errors[$i]->message;
             }
 
@@ -196,7 +199,7 @@ class ProductController extends Controller
         } else {
             // request success
             Log::info(now() .' '. $uuid . ' Executing sql update query ...');
-            for ($j=0; $j < count($where_arr); $j++) { 
+            for ($j=0; $j < count($where_arr); $j++) {
                 $update_product = Product::where($where_arr[$j])->update($update_arr[$j]);
 
                 if (!$update_product) {
@@ -228,6 +231,7 @@ class ProductController extends Controller
             "requests.*.data.additional_image_link" => "required|array|min:2",
             "requests.*.data.name" => "required",
             "requests.*.data.price" => "required:integer",
+            "requests.*.data.weight" => "required:integer|min:1",
             "requests.*.data.currency" => "required",
             "requests.*.data.shipping" => "required",
             "requests.*.data.shipping.*.country" => "required",
@@ -244,7 +248,7 @@ class ProductController extends Controller
         $client = new \GuzzleHttp\Client();
         $fb_endpoint = env('FB_ENDPOINT');
         $fb_token = env('FB_MARKETING_API_TOKEN');
-        
+
         $payload = [
             "form_params" => [
                 "access_token" => $fb_token,
@@ -252,7 +256,14 @@ class ProductController extends Controller
             ]
         ];
 
-        for ($j=0; $j < count($req->requests); $j++) { 
+        $saveToDB = [
+            "form_params" => [
+                "access_token" => $fb_token,
+                "requests" => []
+            ]
+        ];
+
+        for ($j=0; $j < count($req->requests); $j++) {
             $item = $req->requests[$j];
 
             if (!isset($item['retailer_id'])) {
@@ -282,6 +293,26 @@ class ProductController extends Controller
                     "retailer_product_group_id" => $item['data']['retailer_product_group_id']
                 ]
             ];
+
+            $saveToDB["form_params"]["requests"][] = [
+                "method" => "CREATE",
+                "retailer_id" => $retailerId,
+                "data" => [
+                    "availability" => $item['data']['availability'],
+                    "brand" => $item['data']['brand'],
+                    "category" => $item['data']['category'],
+                    "description" => $item['data']['description'],
+                    "image_url" => $item['data']['image_url'],
+                    "name" => $item['data']['name'],
+                    "price" => $item['data']['price'],
+                    "weight" => $item['data']['weight'],
+                    "currency" => $item['data']['currency'],
+                    "shipping" => $item['data']['shipping'],
+                    "condition" => $item['data']['condition'],
+                    "url" => $item['data']['url'],
+                    "retailer_product_group_id" => $item['data']['retailer_product_group_id']
+                ]
+            ];
         }
 
         Log::info(now() .' '. $uuid . ' Sending request to FB : ', ['endpoint' => $fb_endpoint, 'payload' => $payload]);
@@ -290,11 +321,11 @@ class ProductController extends Controller
         $response_body_json = json_decode($response_body);
         $response_status_code = $create_item->getStatusCode();
         Log::info(now() .' '. $uuid . ' Response : ', ["RESPONSE BODY" => $response_body, "STATUS CODE" => $response_status_code]);
-        
+
         if (isset($response_body_json->validation_status[0]->errors) && count($response_body_json->validation_status[0]->errors) > 0) {
             // request failed
             $errors = [];
-            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) { 
+            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) {
                 $errors["message"][] = $response_body_json->validation_status[0]->errors[$i]->message;
             }
 
@@ -305,14 +336,15 @@ class ProductController extends Controller
                 "errors" => $errors
             ], 422);
         } else {
-            for ($j=0; $j < count($payload['form_params']['requests']); $j++) { 
-                $item = $payload['form_params']['requests'][$j];
+            for ($j=0; $j < count($saveToDB['form_params']['requests']); $j++) {
+                $item = $saveToDB['form_params']['requests'][$j];
                 $newProduct = [
                     "id" => $uuid,
                     "status" => "in_review",
                     "sku" => $item['retailer_id'],
                     "name" => $item['data']['name'],
                     "price" => $item['data']['price'],
+                    "weight" => $item['data']['weight'],
                     "stock" => $req->requests[$j]['data']['stock'],
                     "fb_data" => json_encode($item["data"]),
                     "description" => $item['data']['description'],
@@ -323,7 +355,7 @@ class ProductController extends Controller
 
                 $insert = Product::insert($newProduct);
             }
-            
+
             Log::info(now() .' '. $uuid . ' Return response success');
             return response([
                 "message" => "Success, product created"
@@ -344,7 +376,7 @@ class ProductController extends Controller
         $client = new \GuzzleHttp\Client();
         $fb_endpoint = env('FB_ENDPOINT');
         $fb_token = env('FB_MARKETING_API_TOKEN');
-        
+
         $payload = [
             "form_params" => [
                 "access_token" => $fb_token,
@@ -354,7 +386,7 @@ class ProductController extends Controller
 
         $sku = [];
 
-        for ($i=0; $i < count($req->requests); $i++) { 
+        for ($i=0; $i < count($req->requests); $i++) {
             $sku[] = $req->requests[$i]['retailer_id'];
             $payload['form_params']['requests'][] = [
                 "method" => "DELETE",
@@ -368,13 +400,13 @@ class ProductController extends Controller
         $response_body = $delete_item->getBody()->getContents();
         $response_body_json = json_decode($response_body);
         $response_status_code = $delete_item->getStatusCode();
-        
+
         Log::info(now() .' '. $uuid . ' Response : ', ["RESPONSE BODY" => $response_body, "STATUS CODE" => $response_status_code]);
 
         if (isset($response_body_json->validation_status[0]->errors) && count($response_body_json->validation_status[0]->errors) > 0) {
             // request failed
             $errors = [];
-            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) { 
+            for ($i=0; $i < count($response_body_json->validation_status[0]->errors); $i++) {
                 $errors["message"][] = $response_body_json->validation_status[0]->errors[$i]->message;
             }
 
@@ -394,7 +426,7 @@ class ProductController extends Controller
             }
 
             Log::info(now() .' '. $uuid . ' Return response success');
-            
+
             return response([
                 "message" => "Success, product deleted"
             ]);

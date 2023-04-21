@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateConfigurationTable extends Migration
+class CreateSetAddressTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,12 @@ class CreateConfigurationTable extends Migration
      */
     public function up()
     {
-        Schema::create('configurations', function (Blueprint $table) {
+        Schema::create('set_address', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('app_name')->length(15);
-            $table->string('configuration_name')->length(50);
-            $table->text('configuration_value');
-            $table->timestamps();
+            $table->string('client_id');
+            $table->string('token');
+            $table->timestamp("created_at");
+            $table->timestamp("expired_at");
         });
     }
 
@@ -29,6 +29,6 @@ class CreateConfigurationTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('configuration');
+        Schema::dropIfExists('set_address');
     }
 }

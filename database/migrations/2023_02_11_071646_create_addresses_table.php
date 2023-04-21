@@ -17,8 +17,10 @@ class CreateAddressesTable extends Migration
             $table->uuid('id');
             $table->primary('id');
             $table->string('client_id')->length(50);
+            $table->string('pending_transaction_id')->length(50);
             $table->text('address');
-            $table->string('address_name');
+            $table->string('recipient_name');
+            $table->string('phone_number');
             $table->json('rajaongkir_ref');
             $table->timestamps();
             $table->softDeletes('deleted_at', 0);

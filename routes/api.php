@@ -1,6 +1,11 @@
 <?php
 
 Route::post('/v1/login', 'API\LoginController@login');
+
+Route::group(['prefix' => 'v1/region'], function() {
+    Route::get('/city/{provinceId}','AddressUtilityController@cityList');
+});
+
 Route::group(['prefix' => 'v1', 'middleware' => 'auth:api'], function() {
     Route::post('/change_password', 'API\LoginController@change_password');
 
@@ -33,5 +38,5 @@ Route::group(['prefix' => 'v1', 'middleware' => 'auth:api'], function() {
         Route::patch('/update', 'API\EmployeeController@update');
         Route::delete('/delete', 'API\EmployeeController@delete');
     });
-    
+
 });
