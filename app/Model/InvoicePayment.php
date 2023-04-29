@@ -10,4 +10,6 @@ class InvoicePayment extends Model
 {
     use Uuids;
     use SoftDeletes;
+
+    protected $fillable = ["*"];
 }

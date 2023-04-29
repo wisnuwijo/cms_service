@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateReviewsTable extends Migration
+class CreateTokensTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,14 +13,13 @@ class CreateReviewsTable extends Migration
      */
     public function up()
     {
-        Schema::create('reviews', function (Blueprint $table) {
-            $table->uuid('id');
-            $table->primary('id');
-            $table->uuid('transaction_id');
-            $table->uuid('client_id');
-            $table->integer('stars')->length(1);
+        Schema::create('tokens', function (Blueprint $table) {
+            $table->uuid('token');
+            $table->primary('token');
+            $table->text('type');
+            $table->uuid('client_id')->nullable();
+            $table->timestamp('expired_at');
             $table->timestamps();
-            $table->softDeletes('deleted_at', 0);
         });
     }
 
@@ -31,6 +30,6 @@ class CreateReviewsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('reviews');
+        Schema::dropIfExists('tokens');
     }
 }

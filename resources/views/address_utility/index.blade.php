@@ -25,6 +25,7 @@
                 <label for="receiver-name" class="form-label">Nama Penerima</label>
                 <input type="hidden" class="form-control" name="client_id" value="{{ $client->id }}">
                 <input type="hidden" class="form-control" name="pending_transaction_id" value="{{ $set_address->pending_transaction_id }}">
+                <input type="hidden" class="form-control" name="origin" value="{{ $_GET['origin'] }}">
                 <input type="text" class="form-control" id="receiver-name" name="receiver_name" value="{{ $client->name }}" required>
             </div>
             <div class="col-md-12">

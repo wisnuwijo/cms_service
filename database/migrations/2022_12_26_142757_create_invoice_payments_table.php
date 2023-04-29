@@ -16,8 +16,11 @@ class CreateInvoicePaymentsTable extends Migration
         Schema::create('invoice_payments', function (Blueprint $table) {
             $table->uuid('id');
             $table->primary('id');
+            $table->string('account_number')->length(120);
+            $table->string('account_number_owner')->length(120);
             $table->uuid('invoice_id');
             $table->uuid('transaction_id');
+            $table->enum('status',["waiting_verification","payment_invalid","payment_valid"]);
             $table->double('amount');
             $table->string('transfer_slip_img')->length(150);
             $table->uuid('created_by');

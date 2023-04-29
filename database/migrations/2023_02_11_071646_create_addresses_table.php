@@ -17,7 +17,7 @@ class CreateAddressesTable extends Migration
             $table->uuid('id');
             $table->primary('id');
             $table->string('client_id')->length(50);
-            $table->string('pending_transaction_id')->length(50);
+            $table->string('pending_transaction_id')->length(50)->nullable();
             $table->text('address');
             $table->string('recipient_name');
             $table->string('phone_number');

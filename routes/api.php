@@ -28,6 +28,9 @@ Route::group(['prefix' => 'v1', 'middleware' => 'auth:api'], function() {
     Route::group(['prefix' => 'transaction'], function() {
         Route::get('/', 'API\TransactionController@index');
         Route::get('/detail', 'API\TransactionController@detail');
+        Route::get('/payment_confirmation', 'API\TransactionController@paymentConfirmation');
+        Route::post('/verify_payment', 'API\TransactionController@verifyPayment');
+        Route::post('/finish', 'API\TransactionController@finishTransaction');
     });
 
     Route::group(['prefix' => 'employee'], function() {

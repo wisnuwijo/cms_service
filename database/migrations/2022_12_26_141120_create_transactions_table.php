@@ -18,7 +18,8 @@ class CreateTransactionsTable extends Migration
             $table->primary('id');
             $table->uuid('pending_trx_id')->nullable();
             $table->uuid('client_id');
-            $table->enum('status',["unpaid","prepare_for_delivery","expired","canceled","delivery","delivered","success"]);
+            $table->enum('status',["unpaid","prepare_for_delivery","expired","canceled","delivery","delivered","success","returned"]);
+            $table->timestamp('payment_expired_at');
             $table->string('courier_name');
             $table->double('delivery_fee');
             $table->double('tax_percentage');

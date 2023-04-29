@@ -16,6 +16,7 @@ class CreateSetAddressTable extends Migration
         Schema::create('set_address', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('client_id');
+            $table->string('pending_transaction_id')->nullable();
             $table->string('token');
             $table->timestamp("created_at");
             $table->timestamp("expired_at");
