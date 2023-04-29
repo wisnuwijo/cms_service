@@ -6,6 +6,12 @@ Route::get('/clear-cache', function() {
     return '<h1>Cache facade value cleared</h1>';
 });
 
+//Clear Cache facade value:
+Route::get('/clear-config', function() {
+    $exitCode = Artisan::call('config:clear');
+    return '<h1>Config facade value cleared</h1>';
+});
+
 //Reoptimized class loader:
 Route::get('/optimize', function() {
     $exitCode = Artisan::call('optimize');
