@@ -1,13 +1,5 @@
 <?php
 
-Route::get('/{token}', 'AddressUtilityController@index');
-Route::post('/save-address', 'AddressUtilityController@saveAddress');
-Route::get('/transaction-history/{token}', 'TransactionController@transactionHistory');
-Route::get('/confirm-payment/feedback', 'TransactionController@feedback');
-Route::get('/confirm-payment/{token}/{trxid}', 'TransactionController@confirmPaymentForm');
-Route::get('/confirm-payment/{token}', 'TransactionController@transactionList');
-Route::post('/confirm-payment', 'TransactionController@savePayment');
-
 //Clear Cache facade value:
 Route::get('/clear-cache', function() {
     $exitCode = Artisan::call('cache:clear');
@@ -50,3 +42,11 @@ Route::get('/', function () {
         "code" => 401
     ], 401);
 });
+
+Route::post('/save-address', 'AddressUtilityController@saveAddress');
+Route::get('/transaction-history/{token}', 'TransactionController@transactionHistory');
+Route::get('/confirm-payment/feedback', 'TransactionController@feedback');
+Route::get('/confirm-payment/{token}/{trxid}', 'TransactionController@confirmPaymentForm');
+Route::get('/confirm-payment/{token}', 'TransactionController@transactionList');
+Route::post('/confirm-payment', 'TransactionController@savePayment');
+Route::get('/{token}', 'AddressUtilityController@index');
