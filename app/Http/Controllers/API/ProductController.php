@@ -17,11 +17,12 @@ class ProductController extends Controller
         $uuid = Str::uuid();
         Log::info(now() .' '. $uuid . ' Got product list request');
 
-        $get_products = Product::select(["fb_data","status","sku"])->orderBy('created_at','DESC')->get();
+        $get_products = Product::select(["fb_data","status","sku",'stock'])->orderBy('created_at','DESC')->get();
         $products = [];
         for ($i=0; $i < count($get_products); $i++) {
             $product = json_decode($get_products[$i]->fb_data);
             $product->status = $get_products[$i]->status;
+            $product->stock = $get_products[$i]->stock;
             $product->retailer_id = $get_products[$i]->sku;
             $products[] = $product;
         }
