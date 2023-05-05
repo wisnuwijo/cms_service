@@ -264,7 +264,20 @@ class AddressUtilityController extends Controller
 
             // send address courier option message
             $sendMsgResp = null;
-            if ($pendingTrx) $sendMsgResp = $this->sendSelectCourierMessage($uuid, $pendingTrx, $req->full_address, $couriers);
+            if ($pendingTrx) {
+                $saveAddress = Address::insert([
+                    "id" => Str::uuid(),
+                    "pending_transaction_id" => $req->pending_transaction_id,
+                    "client_id" => $req->client_id,
+                    "address" => $req->full_address,
+                    "recipient_name" => $req->receiver_name,
+                    "phone_number" => $req->receiver_phone_number,
+                    "rajaongkir_ref" => json_encode($rajaongkirRef),
+                    "created_at" => now()
+                ]);
+
+                $sendMsgResp = $this->sendSelectCourierMessage($uuid, $pendingTrx, $req->full_address, $couriers);
+            }
 
             // check if failed
             if (
