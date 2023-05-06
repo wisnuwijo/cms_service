@@ -8,6 +8,7 @@ use App\Model\Token;
 use App\Model\Transaction;
 use App\Model\TransactionDetail;
 use App\Model\InvoicePayment;
+use App\Model\Complaint;
 use App\Model\Invoice;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -208,5 +209,90 @@ class TransactionController extends Controller
         return view('transaction_history.index', [
             "transactions" => $transactions
         ]);
+    }
+
+    public function complaint($token, $trxid)
+    {
+        $token = $this->validateToken($token);
+        $transaction = $this->validateTrxId($trxid);
+        $transactionDetails = TransactionDetail::where("transaction_id", $transaction->id)->get();
+
+        return view('complaint.index', [
+            'transaction' => $transaction,
+            'detail' => $transactionDetails
+        ]);
+    }
+
+    public function saveComplaint(Request $req)
+    {
+        $save = Complaint::insert([
+            "transaction_id" => $req->transaction_id,
+            "text" => $req->text
+        ]);
+
+        if ($save) {
+            $uuid = Str::uuid();
+            $transaction = Transaction::select([
+                    "clients.phone_number"
+                ])
+                ->where("transactions.id", $req->transaction_id)
+                ->leftJoin("clients","transactions.client_id","clients.id")
+                ->first();
+
+            if (isset($transaction)) {
+                $this->sendComplaintSavedMessage($uuid, $transaction->phone_number);
+            }
+
+            return view('confirm_payment.feedback', [
+                "msg" => "Berhasil disimpan, keluhan kamu sedang kami tinjau"
+            ]);
+        }
+
+        return view('confirm_payment.feedback', [
+            "msg" => "Gagal disimpan, sepertinya ada yang salah. Coba ulangi lagi"
+        ]);
+    }
+
+    public function sendComplaintSavedMessage($uuid, $to)
+    {
+        $logPrefix = now() .' '. $uuid . ' sendComplaintSavedMessage() ';
+        Log::info($logPrefix . "Send whatsapp message to client: " . $to);
+
+        $whatsappEndpoint = env('WHATSAPP_MESSAGE_ENDPOINT');
+        $whatsappToken = env('WHATSAPP_TOKEN');
+
+        $body = "Keluhan Anda sedang kami tangani mohon ditunggu ya 😊. Sambil menunggu silahkan Anda dapat melihat produk-produk lain yang ada di Belili.\n\nTerima kasih";
+        $payload = [
+            "messaging_product" => "whatsapp",
+            "recipient_type" => "individual",
+            "to" => $to,
+            "type" => "text",
+            "text" => [
+                "body" => $body
+            ]
+        ];
+
+        $response = null;
+        try {
+            $client = new \GuzzleHttp\Client();
+            $headers = ['Authorization' => 'Bearer ' . $whatsappToken];
+            $payload = [
+                "headers" => $headers,
+                "form_params" => $payload
+            ];
+
+            Log::info(now() ." ". $uuid . " sendComplaintSavedMessage() Send request to whatsapp");
+            Log::info(now() ." ". $uuid . " sendComplaintSavedMessage() Endpoint: " . $whatsappEndpoint);
+            Log::info(now() ." ". $uuid . " sendComplaintSavedMessage() Payload: " . json_encode($payload));
+            $response = $client->request('POST', $whatsappEndpoint, $payload);
+
+            $content = json_decode($response->getBody()->getContents());
+            Log::info(now() ." ". $uuid . " sendComplaintSavedMessage() Response: " . json_encode($content));
+        } catch (ClientException $e) {
+            $response = Psr7\Message::toString($e->getResponse());
+            Log::info(now() ." ". $uuid . " sendComplaintSavedMessage() Error: " . $response);
+        }
+
+        return $response;
     }
 }

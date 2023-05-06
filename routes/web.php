@@ -55,4 +55,6 @@ Route::get('/confirm-payment/feedback', 'TransactionController@feedback');
 Route::get('/confirm-payment/{token}/{trxid}', 'TransactionController@confirmPaymentForm');
 Route::get('/confirm-payment/{token}', 'TransactionController@transactionList');
 Route::post('/confirm-payment', 'TransactionController@savePayment');
+Route::get('/complaint/{token}/{trxid}', 'TransactionController@complaint');
+Route::post('/save-complaint', 'TransactionController@saveComplaint');
 Route::get('/{token}', 'AddressUtilityController@index');

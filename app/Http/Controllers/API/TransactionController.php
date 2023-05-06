@@ -10,6 +10,7 @@ use App\Model\TransactionDetail;
 use App\Model\Delivery;
 use App\Model\Invoice;
 use App\Model\InvoicePayment;
+use App\Model\FinishedOrderNotification;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
@@ -262,7 +263,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    private function sendProductArrivedMessage($to, $clientName, $productList, $datetime) {
+    private function sendProductArrivedMessage($to, $clientName, $productList, $datetime, $transaction_id) {
         $uuid = Str::uuid();
         $logPrefix = now() .' '. $uuid . ' sendProductArrivedMessage() ';
         Log::info($logPrefix . "Send whatsapp message to client to choose courier");
@@ -318,6 +319,16 @@ class TransactionController extends Controller
             $response = $client->request('POST', $whatsappEndpoint, $payload);
 
             $content = json_decode($response->getBody()->getContents());
+            if (isset($content->messages[0]->id)) {
+                $insertNotif = FinishedOrderNotification::insert([
+                    "wa_msg_id" => (String) $content->messages[0]->id,
+                    "product_list" => $productList,
+                    "transaction_id" => (String) $transaction_id
+                ]);
+
+                Log::info(now() ." ". $uuid . " sendProductArrivedMessage() Save to finished_order_notification tbl");
+            }
+
             Log::info(now() ." ". $uuid . " sendProductArrivedMessage() Response: " . json_encode($content));
         } catch (ClientException $e) {
             $response = Psr7\Message::toString($e->getResponse());
@@ -352,13 +363,14 @@ class TransactionController extends Controller
             ->selectRaw("GROUP_CONCAT(transaction_details.product_name) AS product_name")
             ->leftJoin('clients','transactions.client_id','clients.id')
             ->leftJoin('transaction_details','transactions.id','transaction_details.transaction_id')
+            ->where('transaction_id', $req->transaction_id)
             ->groupBy(['transactions.created_at', 'clients.name', 'clients.phone_number'])
             ->get();
 
         $transaction = null;
         if (count($trx) > 0) {
             $transaction = $trx[0];
-            $this->sendProductArrivedMessage($transaction->phone_number, $transaction->name, $transaction->product_name, $transaction->created_at);
+            $this->sendProductArrivedMessage($transaction->phone_number, $transaction->name, $transaction->product_name, $transaction->created_at, $req->transaction_id);
         }
 
         return response([
